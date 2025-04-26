@@ -1,0 +1,8 @@
+{
+    "short_name": "OSFiler",
+    "name": "OSFiler - OSINT Profiling Tool",
+    "start_url": ".",
+    "display": "standalone",
+    "theme_color": "#4c6ef5",
+    "background_color": "#ffffff"
+  }

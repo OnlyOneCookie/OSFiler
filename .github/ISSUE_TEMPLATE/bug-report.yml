@@ -1,0 +1,111 @@
+name: Bug Report
+description: Create a report to help improve OSFiler
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        # OSFiler Bug Report
+        
+        Thanks for taking the time to fill out this bug report! Please provide as much information as possible to help us identify and fix the issue.
+  
+  - type: dropdown
+    id: component
+    attributes:
+      label: Affected Component
+      description: Which part of OSFiler is affected by the bug?
+      options:
+        - Frontend (React)
+        - Backend (Python)
+        - Database (PostgreSQL)
+        - Module System
+        - Graph Visualization
+        - Authentication
+        - Installation/Setup
+        - Other
+    validations:
+      required: true
+  
+  - type: input
+    id: version
+    attributes:
+      label: OSFiler Version
+      description: Which version of OSFiler are you using?
+      placeholder: e.g., git commit hash or version number
+    validations:
+      required: true
+  
+  - type: textarea
+    id: description
+    attributes:
+      label: Bug Description
+      description: Please provide a clear and concise description of the bug.
+      placeholder: What happened? What did you expect to happen?
+    validations:
+      required: true
+  
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Steps to Reproduce
+      description: How can we reproduce this issue?
+      placeholder: |
+        1. Go to '...'
+        2. Click on '....'
+        3. Scroll down to '....'
+        4. See error
+    validations:
+      required: true
+  
+  - type: textarea
+    id: logs
+    attributes:
+      label: Relevant Log Output
+      description: Please copy and paste any relevant log output. This will be automatically formatted into code, so no need for backticks.
+      render: shell
+  
+  - type: textarea
+    id: screenshots
+    attributes:
+      label: Screenshots
+      description: If applicable, add screenshots to help explain your problem.
+  
+  - type: dropdown
+    id: browsers
+    attributes:
+      label: Browser(s)
+      description: What browsers are you experiencing the problem on? (Select all that apply, leave empty if not browser-related)
+      multiple: true
+      options:
+        - Chrome
+        - Firefox
+        - Safari
+        - Edge
+        - Opera
+        - Other
+  
+  - type: dropdown
+    id: os
+    attributes:
+      label: Operating System
+      description: What operating system are you using?
+      options:
+        - Windows
+        - macOS
+        - Linux
+        - Other
+    validations:
+      required: true
+  
+  - type: input
+    id: python-version
+    attributes:
+      label: Python Version
+      description: What Python version are you using?
+      placeholder: e.g., 3.12.0
+  
+  - type: textarea
+    id: additional
+    attributes:
+      label: Additional Information
+      description: Add any other context about the problem here.
