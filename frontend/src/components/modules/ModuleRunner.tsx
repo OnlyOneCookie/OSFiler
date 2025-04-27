@@ -24,9 +24,7 @@ import {
   FormControl,
   IconButton,
   InputLabel,
-  Link,
   MenuItem,
-  Paper,
   Select,
   Stack,
   TextField,
@@ -36,8 +34,7 @@ import {
   Tooltip,
   Checkbox,
   FormControlLabel,
-  Avatar,
-  CardMedia
+  Avatar
 } from '@mui/material';
 
 // Material UI icons
@@ -112,13 +109,6 @@ const NodeExistence: React.FC<NodeExistenceProps> = ({ card, investigationId, on
             return true;
           }
           
-          // Check by platform and username for social accounts
-          if (card.platform && node.data && 
-              node.data.platform === card.platform && 
-              node.data.username === card.username) {
-            return true;
-          }
-          
           return false;
         });
         
@@ -138,6 +128,24 @@ const NodeExistence: React.FC<NodeExistenceProps> = ({ card, investigationId, on
   
   return <>{children(isChecking, isInGraph, recheckNode)}</>;
 };
+
+interface ResultCard {
+  title: string;
+  subtitle?: string;
+  url?: string;
+  body?: string;
+  data: any;
+  action?: any;
+  show_properties?: boolean;
+  icon?: string;
+}
+
+interface ModuleResult {
+  nodes: ResultCard[];
+  display: 'single_card' | 'card_collection';
+    title?: string;
+    subtitle?: string;
+}
 
 const ModuleRunner: React.FC<ModuleRunnerProps> = ({ investigationId, onAddToGraph }) => {
   // State
@@ -423,176 +431,6 @@ const ModuleRunner: React.FC<ModuleRunnerProps> = ({ investigationId, onAddToGra
     return parsedValues;
   };
 
-  // Add nodes to graph
-  const handleAddToGraph = () => {
-    if (!result || !result.data) {
-      setError('No data to add to the graph');
-      notify('No data to add to the graph', 'error');
-      return;
-    }
-    
-    let nodes = [];
-    
-    // Handle items from module results
-    if (result.data.items && result.data.items.length > 0) {
-      nodes = result.data.items.map((item: any) => ({
-        type: (item.type || selectedModule?.name || 'module_result').toUpperCase(),
-        name: item.name || item.title || `Result from ${selectedModule?.name || 'module'}`,
-        data: item
-      }));
-    }
-    // Handle node results directly
-    else if (result.data.nodes && result.data.nodes.length > 0) {
-      nodes = result.data.nodes.map((node: any) => ({
-        ...node,
-        type: (node.type || 'CUSTOM').toUpperCase()
-      }));
-    }
-    // Handle display cards if available - various formats
-    // TODO: Make a component and also for the backend (simple developing)
-    else if (result.data.display) {
-      // Handle card collection
-      if (result.data.display.type === 'card_collection' && 
-          result.data.display.cards && 
-          result.data.display.cards.length > 0) {
-        nodes = result.data.display.cards.map((card: any) => createNodeFromCard(card, selectedModule?.name));
-      }
-      // Handle single card
-      else if (result.data.display.type === 'single_card' && result.data.display.card) {
-        nodes = [createNodeFromCard(result.data.display.card, selectedModule?.name)];
-      }
-      // Handle simple text (create a generic node)
-      else if (result.data.display.type === 'simple_text' && result.data.display.text) {
-        nodes = [{
-          type: (selectedModule?.name || 'TEXT_RESULT').toUpperCase(),
-          name: result.data.display.title || 'Text Result',
-          data: {
-            text: result.data.display.text,
-            source: selectedModule?.name || 'module_result',
-            timestamp: new Date().toISOString()
-          }
-        }];
-      }
-    }
-    // Handle other result types 
-    else {
-      // Create a generic node from the result data
-      nodes = [{
-        type: (selectedModule?.name || 'module_result').toUpperCase(),
-        name: result.data.name || result.data.title || `Result from ${selectedModule?.name || 'module'}`,
-        data: result.data
-      }];
-    }
-    
-    // If no nodes were created, show an error
-    if (nodes.length === 0) {
-      setError('No data to add to the graph');
-      notify('No data to add to the graph', 'error');
-      return;
-    }
-    
-    onAddToGraph(nodes);
-    notify(`Added ${nodes.length} node${nodes.length !== 1 ? 's' : ''} to the graph`, 'success');
-  };
-
-  // Render parameter input field
-  const renderParameterInput = (param: any, errors: any, touched: any) => {
-    const fieldId = `param-${param.name}`;
-    const hasError = errors[param.name] && touched[param.name];
-    
-    switch (param.type) {
-      case 'boolean':
-        return (
-          <FormControlLabel
-            control={
-            <Field
-                as={Checkbox}
-              id={fieldId}
-              name={param.name}
-                color="primary"
-              />
-            }
-            label={param.description || ''}
-          />
-        );
-        
-      case 'array':
-        return (
-            <Field
-            as={TextField}
-              id={fieldId}
-              name={param.name}
-            fullWidth
-            variant="outlined"
-            size="small"
-            error={hasError}
-              placeholder="Comma-separated values"
-            helperText={
-              hasError ? (
-                <ErrorMessage name={param.name} />
-              ) : (
-                "Enter values separated by commas"
-              )
-            }
-          />
-        );
-        
-      case 'object':
-        return (
-            <Field
-            as={TextField}
-              id={fieldId}
-              name={param.name}
-            fullWidth
-            multiline
-            minRows={3}
-            variant="outlined"
-            size="small"
-            error={hasError}
-              placeholder="{}"
-            helperText={
-              hasError ? (
-                <ErrorMessage name={param.name} />
-              ) : (
-                "Enter valid JSON object"
-              )
-            }
-          />
-        );
-        
-      case 'integer':
-      case 'number':
-        return (
-          <Field
-            as={TextField}
-            type="number"
-            id={fieldId}
-            name={param.name}
-            fullWidth
-            variant="outlined"
-            size="small"
-            error={hasError}
-            helperText={hasError && <ErrorMessage name={param.name} />}
-          />
-        );
-        
-      case 'string':
-      default:
-        return (
-          <Field
-            as={TextField}
-            id={fieldId}
-            name={param.name}
-            fullWidth
-            variant="outlined"
-            size="small"
-            error={hasError}
-            helperText={hasError && <ErrorMessage name={param.name} />}
-          />
-        );
-    }
-  };
-
   // Helper function to get color for entity type
   const getTypeColor = (type: string) => {
     if (!type) return 'primary.main';
@@ -704,280 +542,237 @@ const ModuleRunner: React.FC<ModuleRunnerProps> = ({ investigationId, onAddToGra
     );
   };
 
-  // Helper function to process card data and create standardized format
-  const processCardData = (card: any) => {
-    const cardType = card.type || 'CUSTOM';
-    const cardTitle = card.title || card.name || 'Result Item';
-    const cardSubtitle = card.subtitle || '';
-    const cardUrl = card.url || '';
-    
-    return {
-      type: cardType,
-      title: cardTitle,
-      subtitle: cardSubtitle,
-      url: cardUrl,
-      originalData: card
-    };
-  };
-
-  // Create standardized node from card data
-  const createNodeFromCard = (card: any, moduleName?: string) => {
-    const processedCard = processCardData(card);
-    
-    // Create a clean data object without UI-specific properties
-    const nodeData = { ...card };
-    
-    // Remove UI-only properties that shouldn't be stored in the database
-    delete nodeData.actions;
-    
-    return {
-      type: processedCard.type.toUpperCase(),
-      name: processedCard.title,
-      data: {
-        ...nodeData,
-        source: moduleName || 'module_result'
-      }
-    };
-  };
-
-  // Render a single card for module result
-  const renderSingleCard = (cardData: any) => {
-    const processedCard = processCardData(cardData);
-    
+  const ResultsSection = ({ result, investigationId, onAddToGraph }: { result: ModuleResult, investigationId: string, onAddToGraph: (nodes: any[]) => void }) => {
+    if (!result?.nodes?.length) {
+      return (
+        <Card variant="outlined" sx={{ mt: 3, borderRadius: 2 }}>
+          <CardHeader title="Results" />
+          <Divider />
+          <CardContent>
+            <Typography variant="body2" color="text.secondary" paragraph>
+              No results to display.
+            </Typography>
+          </CardContent>
+        </Card>
+      );
+    }
     return (
-      <NodeExistence card={cardData} investigationId={investigationId}>
-        {(isChecking, isInGraph, recheckNode) => (
-          <Card 
-            variant="outlined" 
-            sx={{ 
-              maxWidth: '100%',
-              boxShadow: '0 4px 8px rgba(0,0,0,0.1)',
-              borderRadius: '12px',
-              overflow: 'hidden',
-              mb: 2,
-              border: '1px solid',
-              borderColor: isInGraph ? 'success.main' : 'divider'
-            }}
-          >
-            <CardHeader
-              avatar={<EntityAvatar entity={{ type: processedCard.type }} size={48} />}
-              title={
-                <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                  <Typography variant="h6" fontWeight={600} sx={{ mr: 1 }}>
-                    {processedCard.title}
-                  </Typography>
-                  {processedCard.url && (
-                    <IconButton
-                      size="small"
-                      component={Link}
-                      href={processedCard.url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      sx={{ 
-                        p: 0.5,
-                        color: 'primary.main',
-                        '&:hover': { color: 'primary.dark' }
-                      }}
-                    >
-                      <LaunchIcon fontSize="small" />
-                    </IconButton>
-                  )}
-                </Box>
-              }
-              subheader={processedCard.subtitle}
-              subheaderTypographyProps={{
-                variant: 'body2',
-                color: 'text.secondary'
-              }}
-              action={
-                isChecking ? (
-                  <CircularProgress size={24} thickness={4} />
-                ) : isInGraph ? (
-                  <Tooltip title="Already in investigation">
-                    <CheckCircleIcon color="success" />
-                  </Tooltip>
-                ) : null
-              }
-            />
-            {processedCard.originalData.image_url && (
-              <CardMedia
-                component="img"
-                height="140"
-                image={processedCard.originalData.image_url}
-                alt={processedCard.title}
-                sx={{
-                  objectFit: 'cover',
-                  objectPosition: 'center'
-                }}
-              />
-            )}
-            <CardActions sx={{ 
-              borderTop: '1px solid',
-              borderColor: 'divider',
-              p: 1.5,
-              justifyContent: 'center',
-              mt: 'auto'
-            }}>
-              {!isInGraph ? (
-                <Button 
-                  size="small" 
-                  color="primary" 
+      <Card variant="outlined" sx={{ mt: 3, borderRadius: 2 }}>
+        <CardHeader title={result.title || 'Results'} />
+        <Divider />
+        <CardContent>
+          {result.subtitle && (
+            <Typography variant="body2" color="text.secondary" paragraph>
+              {result.subtitle}
+            </Typography>
+          )}
+          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2 }}>
+            {result.nodes.map((card, idx) => (
+              <NodeExistence
+                key={idx}
+                card={card}
+                investigationId={investigationId}
+              >
+                {(isChecking, isInGraph, recheckNode) => (
+                  <ResultCardComponent
+                    card={card}
+                    isChecking={isChecking}
+                    recheckNode={recheckNode}
+                    onAddToGraph={onAddToGraph}
+                    investigationId={investigationId}
+                  />
+                )}
+              </NodeExistence>
+            ))}
+          </Box>
+        </CardContent>
+      </Card>
+    );
+  };
+
+  const ResultCardComponent = ({ card, isChecking, recheckNode, onAddToGraph, investigationId }: { card: ResultCard, isChecking?: boolean, recheckNode?: () => void, onAddToGraph?: (nodes: any[]) => void, investigationId: string }) => {
+    const { notify } = useNotification();
+    const shownFields = ["title", "subtitle", "url", "body", "action"];
+    const detailFields = Object.entries(card.data || {})
+      .filter(([key]) => !shownFields.includes(key))
+      .map(([key, value]) => ({ key, value }));
+    const showProperties = card.show_properties !== false;
+    return (
+      <Card
+        variant="outlined"
+        sx={{
+          width: { xs: '100%', sm: 'calc(50% - 16px)', md: 'calc(33.33% - 16px)' },
+          borderRadius: '12px',
+          overflow: 'hidden',
+          border: '1.5px solid',
+          display: 'flex',
+          flexDirection: 'column',
+          mb: 2,
+          background: '#fff',
+          transition: 'box-shadow 0.2s',
+          '&:hover': {
+            boxShadow: '0 8px 24px rgba(0,0,0,0.10)',
+            borderColor: 'primary.main',
+          },
+        }}
+      >
+        <CardHeader
+          avatar={card.icon ? getDynamicIcon(card.icon, { style: { width: 44, height: 44 } }) : <EntityAvatar entity={card.data} size={44} />}
+          title={<Typography variant="h6" fontWeight={700}>{card.title}</Typography>}
+          subheader={card.subtitle && <Typography variant="subtitle2" color="text.secondary">{card.subtitle}</Typography>}
+          action={card.url ? (
+            <Tooltip title="Open link in new tab">
+              <IconButton href={card.url} target="_blank" rel="noopener noreferrer" color="primary">
+                <LaunchIcon fontSize="medium" />
+              </IconButton>
+            </Tooltip>
+          ) : null}
+          sx={{ pb: 0, alignItems: 'flex-start' }}
+        />
+        <CardContent sx={{ pt: 1, pb: 1 }}>
+          {card.body && (
+            <Typography variant="body2" color="text.primary" sx={{ mb: showProperties && detailFields.length ? 1 : 0 }}>
+              {card.body}
+            </Typography>
+          )}
+          {showProperties && detailFields.length > 0 && (
+            <Stack spacing={0.5} sx={{ mt: 0.5 }}>
+              {detailFields.map(({ key, value }) => (
+                <Typography key={key} variant="body2" color="text.secondary">
+                  <b>{key}:</b> {String(value)}
+                </Typography>
+              ))}
+            </Stack>
+          )}
+        </CardContent>
+        <CardActions sx={{ mt: 'auto', p: 1, justifyContent: 'center', borderTop: '1px solid', borderColor: 'divider', background: '#fafbfc' }}>
+          <NodeExistence card={card} investigationId={investigationId}>
+            {(checking, exists, recheck) =>
+              checking ? (
+                <Button
+                  size="small"
+                  color="inherit"
+                  startIcon={<CircularProgress size={18} />}
+                  disabled
+                  sx={{ width: '100%', fontWeight: 600, borderRadius: 2 }}
+                  variant="outlined"
+                >
+                  Checking...
+                </Button>
+              ) : !exists && card.action ? (
+                <Button
+                  size="small"
+                  color="primary"
                   startIcon={<AddIcon />}
                   onClick={() => {
-                    const node = createNodeFromCard(processedCard.originalData, selectedModule?.name);
-                    onAddToGraph([node]);
-                    notify(`Added ${processedCard.title} to investigation`, 'success');
-                    // After adding to graph, recheck the node status
-                    setTimeout(recheckNode, 500);
+                    onAddToGraph && onAddToGraph([
+                      {
+                        type: card.action?.node_type || 'CUSTOM',
+                        name: card.data.name || card.title || card.subtitle || 'Unnamed Node',
+                        data: card.data
+                      }
+                    ]);
+                    notify(`Added ${card.title} to investigation`, 'success');
+                    if (recheck) setTimeout(recheck, 500); // Only recheck this card
                   }}
-                  fullWidth
+                  sx={{ width: '100%', fontWeight: 600, borderRadius: 2 }}
                   variant="contained"
                 >
-                  Add to Graph
+                  {card.action.label || 'Add to Graph'}
                 </Button>
               ) : (
                 <Button
                   size="small"
                   color="success"
-                  variant="outlined"
                   startIcon={<CheckCircleIcon />}
                   disabled
-                  fullWidth
+                  sx={{ width: '100%', fontWeight: 600, borderRadius: 2 }}
+                  variant="outlined"
                 >
                   Already in Graph
                 </Button>
-              )}
-            </CardActions>
-          </Card>
-        )}
-      </NodeExistence>
+              )
+            }
+          </NodeExistence>
+        </CardActions>
+      </Card>
     );
   };
 
-  // Render a card grid for module results
-  const renderCardGrid = (cards: any[]) => {
-    return (
-      <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2, mt: 2 }}>
-        {cards.map((card: any, index: number) => {
-          const processedCard = processCardData(card);
-          
-          return (
-            <Box 
-              key={index} 
-              sx={{ 
-                width: { xs: '100%', sm: 'calc(50% - 16px)', md: 'calc(33.33% - 16px)' },
-                transition: 'transform 0.2s ease-in-out',
-                '&:hover': {
-                  transform: 'translateY(-4px)',
-                  boxShadow: '0 8px 16px rgba(0,0,0,0.1)'
-                }
-              }}
-            >
-              <NodeExistence card={card} investigationId={investigationId}>
-                {(isChecking, isInGraph, recheckNode) => (
-                  <Card
-                    variant="outlined"
-                    sx={{ 
-                      height: '100%',
-                      display: 'flex',
-                      flexDirection: 'column',
-                      borderRadius: '8px',
-                      overflow: 'hidden',
-                      border: '1px solid',
-                      borderColor: isInGraph ? 'success.main' : 'divider',
-                      boxShadow: isInGraph ? '0 0 0 1px rgba(76, 175, 80, 0.5)' : '0 2px 4px rgba(0,0,0,0.05)'
-                    }}
-                  >
-                    <CardHeader
-                      avatar={<EntityAvatar entity={{ type: processedCard.type }} />}
-                      title={
-                        <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                          <Typography variant="subtitle1" fontWeight={600} sx={{ mr: 1 }}>
-                            {processedCard.title}
-                          </Typography>
-                          {processedCard.url && (
-                            <IconButton
-                              size="small"
-                              component={Link}
-                              href={processedCard.url}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              sx={{ 
-                                p: 0.5,
-                                color: 'primary.main',
-                                '&:hover': { color: 'primary.dark' }
-                              }}
-                            >
-                              <LaunchIcon fontSize="small" />
-                            </IconButton>
-                          )}
-                        </Box>
-                      }
-                      subheader={processedCard.subtitle}
-                      subheaderTypographyProps={{
-                        variant: 'caption',
-                        color: 'text.secondary'
-                      }}
-                      action={
-                        isChecking ? (
-                          <CircularProgress size={24} thickness={4} />
-                        ) : isInGraph ? (
-                          <Tooltip title="Already in investigation">
-                            <CheckCircleIcon color="success" />
-                          </Tooltip>
-                        ) : null
-                      }
-                      sx={{
-                        borderBottom: '1px solid',
-                        borderColor: 'divider',
-                        backgroundColor: 'background.paper',
-                        p: 2
-                      }}
-                    />
-                    <CardActions sx={{ 
-                      mt: 'auto',
-                      borderTop: '1px solid',
-                      borderColor: 'divider',
-                      backgroundColor: 'background.paper',
-                      p: 1,
-                      justifyContent: 'center'
-                    }}>
-                      {!isInGraph ? (
-                        <Button 
-                          size="small" 
-                          color="primary" 
-                          startIcon={<AddIcon />}
-                          onClick={() => {
-                            const node = createNodeFromCard(card, selectedModule?.name);
-                            onAddToGraph([node]);
-                            notify(`Added ${processedCard.title} to investigation`, 'success');
-                            // After adding to graph, recheck the node status
-                            setTimeout(recheckNode, 500);
-                          }}
-                          sx={{ width: '100%' }}
-                        >
-                          Add to Graph
-                        </Button>
-                      ) : (
-                        <Button
-                          size="small"
-                          color="success"
-                          startIcon={<CheckCircleIcon />}
-                          disabled
-                          sx={{ width: '100%' }}
-                        >
-                          Already in Graph
-                        </Button>
-                      )}
-                    </CardActions>
-                  </Card>
-                )}
-              </NodeExistence>
-            </Box>
-          );
-        })}
-      </Box>
-    );
+  // Move renderParameterInput above its first usage
+  const renderParameterInput = (param: any, errors: any, touched: any) => {
+    const fieldId = `param-${param.name}`;
+    const hasError = errors[param.name] && touched[param.name];
+    switch (param.type) {
+      case 'boolean':
+        return (
+          <FormControlLabel
+            control={
+              <Field as={Checkbox} id={fieldId} name={param.name} color="primary" />
+            }
+            label={param.description || ''}
+          />
+        );
+      case 'array':
+        return (
+          <Field
+            as={TextField}
+            id={fieldId}
+            name={param.name}
+            fullWidth
+            variant="outlined"
+            size="small"
+            error={hasError}
+            placeholder="Comma-separated values"
+            helperText={hasError ? <ErrorMessage name={param.name} /> : 'Enter values separated by commas'}
+          />
+        );
+      case 'object':
+        return (
+          <Field
+            as={TextField}
+            id={fieldId}
+            name={param.name}
+            fullWidth
+            multiline
+            minRows={3}
+            variant="outlined"
+            size="small"
+            error={hasError}
+            placeholder="{}"
+            helperText={hasError ? <ErrorMessage name={param.name} /> : 'Enter valid JSON object'}
+          />
+        );
+      case 'integer':
+      case 'number':
+        return (
+          <Field
+            as={TextField}
+            type="number"
+            id={fieldId}
+            name={param.name}
+            fullWidth
+            variant="outlined"
+            size="small"
+            error={hasError}
+            helperText={hasError && <ErrorMessage name={param.name} />}
+          />
+        );
+      case 'string':
+      default:
+        return (
+          <Field
+            as={TextField}
+            id={fieldId}
+            name={param.name}
+            fullWidth
+            variant="outlined"
+            size="small"
+            error={hasError}
+            helperText={hasError && <ErrorMessage name={param.name} />}
+          />
+        );
+    }
   };
 
   // Loading state
@@ -1031,464 +826,174 @@ const ModuleRunner: React.FC<ModuleRunnerProps> = ({ investigationId, onAddToGra
   }
 
   return (
-    <Card elevation={3}>
-      {error && (
-        <Box sx={{ p: 2 }}>
-          <Alert 
-            severity="error" 
-            onClose={() => setError(null)}
-          >
-          {error}
-          </Alert>
-        </Box>
-      )}
-      
-      <CardHeader
-        title="Module Runner"
-        action={
-          result && (
-            <Button
-              variant="outlined"
-              size="small"
-              startIcon={<ArrowBackIcon />}
-              onClick={() => setShowParameters(true)}
-              sx={{ mr: 1 }}
+    <>
+      {/* Module Runner Section */}
+      <Card elevation={3}>
+        {error && (
+          <Box sx={{ p: 2 }}>
+            <Alert 
+              severity="error" 
+              onClose={() => setError(null)}
             >
-              Configure
-            </Button>
-          )
-        }
-        sx={{ 
-          pb: 1,
-          "& .MuiCardHeader-title": {
-            fontSize: '1.25rem'
+            {error}
+            </Alert>
+          </Box>
+        )}
+        <CardHeader
+          title="Module Runner"
+          action={
+            result && (
+              <Button
+                variant="outlined"
+                size="small"
+                startIcon={<ArrowBackIcon />}
+                onClick={() => setShowParameters(true)}
+                sx={{ mr: 1 }}
+              >
+                Configure
+              </Button>
+            )
           }
-        }}
-      />
-
-      <Divider />
-      
-      <CardContent>
-        <FormControl fullWidth variant="outlined" size="small" sx={{ mb: 2 }}>
-          <InputLabel id="module-select-label">Select a module</InputLabel>
-          <Select
-            labelId="module-select-label"
-          id="module-select"
-          value={selectedModule?.name || ''}
-          onChange={(e) => selectModule(e.target.value)}
-          disabled={isExecuting}
-            label="Select a module"
-        >
-          {modules.map((module) => (
-              <MenuItem key={module.name} value={module.name}>
-                {module.display_name || module.name}
-              </MenuItem>
-            ))}
-          </Select>
-        </FormControl>
+          sx={{ 
+            pb: 1,
+            "& .MuiCardHeader-title": {
+              fontSize: '1.25rem'
+            }
+          }}
+        />
+        <Divider />
+        <CardContent>
+          <FormControl fullWidth variant="outlined" size="small" sx={{ mb: 2 }}>
+            <InputLabel id="module-select-label">Select a module</InputLabel>
+            <Select
+              labelId="module-select-label"
+              id="module-select"
+              value={selectedModule?.name || ''}
+              onChange={(e) => selectModule(e.target.value)}
+              disabled={isExecuting}
+              label="Select a module"
+            >
+              {modules.map((module) => (
+                <MenuItem key={module.name} value={module.name}>
+                  {module.display_name || module.name}
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
           
-        {selectedModule && showParameters && (
-          <Box sx={{ mt: 2 }}>
-            <Box sx={{ mb: 2 }}>
-              <Typography variant="h6">{selectedModule.display_name || selectedModule.name}</Typography>
-              <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-                {selectedModule.description}
-              </Typography>
-              <Stack direction="row" spacing={1} sx={{ mb: 1 }}>
-                <Chip 
-                  label={`v${selectedModule.version}`} 
-                  size="small" 
-                  variant="outlined" 
-                />
-                <Chip 
-                  label={`by ${selectedModule.author}`} 
-                  size="small" 
-                  variant="outlined" 
-                />
-              </Stack>
-            </Box>
+          {selectedModule && showParameters && (
+            <Box sx={{ mt: 2 }}>
+              <Box sx={{ mb: 2 }}>
+                <Typography variant="h6">{selectedModule.display_name || selectedModule.name}</Typography>
+                <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                  {selectedModule.description}
+                </Typography>
+                <Stack direction="row" spacing={1} sx={{ mb: 1 }}>
+                  <Chip 
+                    label={`v${selectedModule.version}`} 
+                    size="small" 
+                    variant="outlined" 
+                  />
+                  <Chip 
+                    label={`by ${selectedModule.author}`} 
+                    size="small" 
+                    variant="outlined" 
+                  />
+                </Stack>
+              </Box>
+              
+              <Divider sx={{ mb: 3 }} />
             
-            <Divider sx={{ mb: 3 }} />
-          
-          <Formik
-            initialValues={generateInitialValues(selectedModule)}
-            validationSchema={generateValidationSchema(selectedModule)}
-            onSubmit={(values) => {
-              const parsedValues = parseFormValues(values, selectedModule);
-              executeModule(parsedValues);
-            }}
-            enableReinitialize
-          >
-            {({ errors, touched }) => (
-                <Form>
-                {selectedModule.required_params && selectedModule.required_params.length > 0 ? (
-                    <Box sx={{ mb: 3 }}>
-                      <Typography variant="subtitle1" sx={{ mb: 1 }}>Required Parameters</Typography>
-                      <Stack spacing={2}>
-                        {selectedModule.required_params.map((param) => (
-                          <Box key={param.name}>
-                            <Box sx={{ display: 'flex', alignItems: 'center', mb: 0.5 }}>
-                              <Typography variant="body2" fontWeight="500">
-                        {param.name}
-                              </Typography>
-                      {param.description && (
-                                <Tooltip title={param.description} arrow>
-                                  <IconButton size="small" sx={{ ml: 0.5, p: 0 }}>
-                                    <InfoIcon fontSize="small" color="action" />
-                                  </IconButton>
-                                </Tooltip>
-                              )}
+            <Formik
+              initialValues={generateInitialValues(selectedModule)}
+              validationSchema={generateValidationSchema(selectedModule)}
+              onSubmit={(values) => {
+                const parsedValues = parseFormValues(values, selectedModule);
+                executeModule(parsedValues);
+              }}
+              enableReinitialize
+            >
+              {({ errors, touched }) => (
+                  <Form>
+                  {selectedModule.required_params && selectedModule.required_params.length > 0 ? (
+                      <Box sx={{ mb: 3 }}>
+                        <Typography variant="subtitle1" sx={{ mb: 1 }}>Required Parameters</Typography>
+                        <Stack spacing={2}>
+                          {selectedModule.required_params.map((param) => (
+                            <Box key={param.name}>
+                              <Box sx={{ display: 'flex', alignItems: 'center', mb: 0.5 }}>
+                                <Typography variant="body2" fontWeight="500">
+                          {param.name}
+                                </Typography>
+                          {param.description && (
+                                    <Tooltip title={param.description} arrow>
+                                      <IconButton size="small" sx={{ ml: 0.5, p: 0 }}>
+                                        <InfoIcon fontSize="small" color="action" />
+                                      </IconButton>
+                                    </Tooltip>
+                                  )}
+                              </Box>
+                              {renderParameterInput(param, errors, touched)}
                             </Box>
-                            {renderParameterInput(param, errors, touched)}
-                          </Box>
-                        ))}
-                      </Stack>
-                    </Box>
-                  ) : (
-                    <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                      No required parameters
-                    </Typography>
-                )}
-                
-                {selectedModule.optional_params && selectedModule.optional_params.length > 0 && (
-                    <Box sx={{ mb: 3 }}>
-                      <Typography variant="subtitle1" sx={{ mb: 1 }}>Optional Parameters</Typography>
-                      <Stack spacing={2}>
-                    {selectedModule.optional_params.map((param) => (
-                          <Box key={param.name}>
-                            <Box sx={{ display: 'flex', alignItems: 'center', mb: 0.5 }}>
-                              <Typography variant="body2" fontWeight="500">
-                                {param.name}
-                              </Typography>
-                        {param.description && (
-                                <Tooltip title={param.description} arrow>
-                                  <IconButton size="small" sx={{ ml: 0.5, p: 0 }}>
-                                    <InfoIcon fontSize="small" color="action" />
-                                  </IconButton>
-                                </Tooltip>
-                              )}
-                            </Box>
-                            {renderParameterInput(param, errors, touched)}
-                          </Box>
-                        ))}
-                      </Stack>
-                    </Box>
+                          ))}
+                        </Stack>
+                      </Box>
+                    ) : (
+                      <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                        No required parameters
+                      </Typography>
                   )}
                   
-                  <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 2 }}>
-                    <Button
-                    type="submit"
-                      variant="contained"
-                    disabled={isExecuting}
-                      startIcon={isExecuting ? <CircularProgress size={20} /> : <SearchIcon />}
-                  >
-                    {isExecuting ? 'Executing...' : 'Execute Module'}
-                    </Button>
-                  </Box>
-              </Form>
-            )}
-          </Formik>
-          </Box>
-        )}
-        
-        {result && !showParameters && (
-          <Box sx={{ mt: 2 }}>
-          {result.status === 'error' ? (
-              <Alert severity="error" variant="outlined" sx={{ mb: 2 }}>
-                <AlertTitle>Error</AlertTitle>
-                {result.error}
-              </Alert>
-            ) : (
-              <Box>
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-                  <Typography variant="h6">Results</Typography>
-                  <Typography variant="caption" color="text.secondary">
-                    {new Date(result.timestamp).toLocaleString()}
-                  </Typography>
-                </Box>
-                
-                {/* Generic module result display */}
-                <Box>
-                  {result.data && (
-                    <>
-                      {/* Show common data fields */}
-                      {result.data.message && (
-                        <Alert severity="info" variant="outlined" sx={{ mb: 2 }}>
-                          {result.data.message}
-                        </Alert>
-                      )}
-                      
-                      {/* Display node data if available */}
-                      {result.data.nodes && result.data.nodes.length > 0 && (
-                        <Paper variant="outlined" sx={{ p: 2, mb: 2, borderRadius: '8px', boxShadow: '0 4px 6px rgba(0,0,0,0.05)' }}>
-                          <Typography variant="subtitle1" sx={{ mb: 1.5, fontWeight: 600, color: 'primary.main', display: 'flex', alignItems: 'center', gap: 1 }}>
-                            <SearchIcon fontSize="small" />
-                            Nodes Found: {result.data.nodes.length}
-                          </Typography>
-                          <Stack spacing={1.5}>
-                            {result.data.nodes.map((node: any, index: number) => (
-                              <Paper key={index} variant="outlined" sx={{ 
-                                p: 2,
-                                borderRadius: '6px',
-                                transition: 'transform 0.2s ease-in-out',
-                                '&:hover': {
-                                  transform: 'translateY(-2px)',
-                                  boxShadow: '0 4px 8px rgba(0,0,0,0.1)'
-                                },
-                                display: 'flex',
-                                flexDirection: 'column',
-                                gap: 0.5,
-                                border: '1px solid',
-                                borderColor: 'divider'
-                              }}>
-                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 1 }}>
-                                  <EntityAvatar entity={{type: node.type, platform: node.data?.platform}} size={32} />
-                                  <Typography variant="subtitle2" fontWeight={600} color="primary.main">
-                                    {node.name}
-                                  </Typography>
-                                </Box>
-                                <Box sx={{ display: 'flex', alignItems: 'center', mb: 0.5 }}>
-                                  <Chip 
-                                    label={node.type} 
-                                    size="small" 
-                                    sx={{ 
-                                      bgcolor: 'primary.light', 
-                                      color: 'primary.contrastText',
-                                      fontWeight: 500,
-                                      fontSize: '0.75rem'
-                                    }} 
-                                  />
-                                </Box>
-                                {node.url && (
-                                  <Link 
-                                    href={node.url} 
-                                    target="_blank" 
-                                    rel="noopener noreferrer"
-                                    sx={{ 
-                                      display: 'flex', 
-                                      alignItems: 'center', 
-                                      mt: 0.5,
-                                      color: 'primary.main',
-                                      fontWeight: 500,
-                                      fontSize: '0.875rem',
-                                      '&:hover': {
-                                        textDecoration: 'underline'
-                                      }
-                                    }}
-                                  >
-                                    View Details
-                                    <LaunchIcon fontSize="small" sx={{ ml: 0.5, fontSize: '0.875rem' }} />
-                                  </Link>
-                                )}
-                              </Paper>
-                            ))}
-                          </Stack>
-                        </Paper>
-                      )}
-                      
-                      {/* Display data items in a generic way (for any module) */}
-                      {result.data.items && result.data.items.length > 0 && (
-                        <Paper variant="outlined" sx={{ p: 2, mb: 2, borderRadius: '8px', boxShadow: '0 4px 6px rgba(0,0,0,0.05)' }}>
-                          <Typography variant="subtitle1" sx={{ mb: 1, fontWeight: 600, color: 'primary.main' }}>
-                            Items Found: {result.data.items.length}
-                          </Typography>
-                          
-                          {result.data.search_query && (
-                            <Chip 
-                              label={`Query: "${result.data.search_query}"`} 
-                              size="small" 
-                              sx={{ mb: 1, backgroundColor: 'primary.light', color: 'primary.contrastText' }}
-                            />
-                          )}
-                          
-                          {result.data.stats && (
-                            <Box sx={{ mb: 2, display: 'flex', flexWrap: 'wrap', gap: 0.8 }}>
-                              {Object.entries(result.data.stats).map(([key, value]) => (
-                                <Chip 
-                                  key={key} 
-                                  label={`${key}: ${String(value)}`} 
-                                  size="small" 
-                                  variant="outlined" 
-                                  sx={{ backgroundColor: 'background.paper', borderColor: 'primary.light' }}
-                                />
-                              ))}
-                            </Box>
-                          )}
-                          
-                          <Box sx={{ display: 'flex', flexWrap: 'wrap', mx: -1, gap: 1 }}>
-                            {result.data.items.map((item: any, index: number) => (
-                              <Box 
-                                key={index} 
-                                sx={{ 
-                                  width: { xs: '100%', sm: 'calc(50% - 16px)', md: 'calc(33.33% - 16px)' }, 
-                                  p: 1,
-                                  transition: 'transform 0.2s ease-in-out',
-                                  '&:hover': {
-                                    transform: 'translateY(-4px)'
-                                  }
-                                }}
-                              >
-                                <Card variant="outlined" sx={{ 
-                                  borderRadius: '8px', 
-                                  boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
-                                  overflow: 'hidden',
-                                  border: '1px solid',
-                                  borderColor: 'divider'
-                                }}>
-                                  <CardHeader
-                                    avatar={<EntityAvatar entity={item} />}
-                                    title={item.title || 'No Title'}
-                                    titleTypographyProps={{ 
-                                      variant: 'subtitle2', 
-                                      fontWeight: 600,
-                                      color: 'text.primary'
-                                    }}
-                                    sx={{
-                                      backgroundColor: 'background.paper',
-                                      borderBottom: '1px solid',
-                                      borderColor: 'divider'
-                                    }}
-                                    action={
-                                      item.url && (
-                                        <IconButton 
-                                          href={item.url} 
-                                          target="_blank" 
-                                          rel="noopener noreferrer"
-                                          size="small"
-                                          aria-label="Open link"
-                                          sx={{ color: 'primary.main' }}
-                                        >
-                                          <LaunchIcon fontSize="small" />
-                                        </IconButton>
-                                      )
-                                    }
-                                  />
-                                  <CardContent sx={{ pt: 1, px: 2, pb: '16px !important' }}>
-                                    <Stack spacing={0.8}>
-                                      {Object.entries(item)
-                                        .filter(([k]) => k !== 'title' && k !== 'url')
-                                        .map(([key, value]) => (
-                                          <Box key={key} sx={{ display: 'flex', alignItems: 'flex-start', gap: 1 }}>
-                                            <Typography variant="body2" fontWeight={500} color="text.secondary" sx={{ minWidth: '80px' }}>
-                                              {key}:
-                                            </Typography>
-                                            <Typography variant="body2" color="text.primary">
-                                              {String(value || '')}
-                                            </Typography>
-                                          </Box>
-                                        ))}
-                                    </Stack>
-                                  </CardContent>
-                                </Card>
+                  {selectedModule.optional_params && selectedModule.optional_params.length > 0 && (
+                      <Box sx={{ mb: 3 }}>
+                        <Typography variant="subtitle1" sx={{ mb: 1 }}>Optional Parameters</Typography>
+                        <Stack spacing={2}>
+                      {selectedModule.optional_params.map((param) => (
+                            <Box key={param.name}>
+                              <Box sx={{ display: 'flex', alignItems: 'center', mb: 0.5 }}>
+                                <Typography variant="body2" fontWeight="500">
+                                  {param.name}
+                                </Typography>
+                            {param.description && (
+                                    <Tooltip title={param.description} arrow>
+                                      <IconButton size="small" sx={{ ml: 0.5, p: 0 }}>
+                                        <InfoIcon fontSize="small" color="action" />
+                                      </IconButton>
+                                    </Tooltip>
+                                  )}
                               </Box>
-                            ))}
-                          </Box>
-                        </Paper>
-                      )}
-                      
-                      {/* Display card collection format - generic approach for all modules */}
-                      {result.data.display && (
-                        <Paper variant="outlined" sx={{ p: 2, mb: 2, borderRadius: '8px', boxShadow: '0 4px 6px rgba(0,0,0,0.05)' }}>
-                          <Typography variant="h6" sx={{ fontWeight: 600, color: 'primary.main', mb: 1 }}>
-                            {result.data.display.title || 'Results'}
-                          </Typography>
-                          
-                          {result.data.display.subtitle && (
-                            <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                              {result.data.display.subtitle}
-                            </Typography>
-                          )}
-                          
-                          {/* Render different display formats based on type */}
-                          {result.data.display.type === 'card_collection' && result.data.display.cards && result.data.display.cards.length > 0 && (
-                            renderCardGrid(result.data.display.cards)
-                          )}
-                          
-                          {result.data.display.type === 'single_card' && result.data.display.card && (
-                            renderSingleCard(result.data.display.card)
-                          )}
-                          
-                          {result.data.display.type === 'simple_text' && result.data.display.text && (
-                            <Typography variant="body1" sx={{ mt: 2, p: 2, bgcolor: 'background.paper', borderRadius: '4px' }}>
-                              {result.data.display.text}
-                            </Typography>
-                          )}
-                          
-                          {(!result.data.display.type || 
-                            (result.data.display.type === 'card_collection' && (!result.data.display.cards || result.data.display.cards.length === 0)) ||
-                            (result.data.display.type === 'single_card' && !result.data.display.card)) && (
-                              <Alert severity="info" sx={{ mt: 1 }}>
-                                No results to display
-                              </Alert>
-                            )}
-                        </Paper>
-                      )}
-                      
-                      {/* Display raw data if no specialized display is available */}
-                      {!result.data.message && !result.data.nodes && !result.data.items && 
-                       !(result.data.display && result.data.display.type === 'card_collection') && (
-                        <Paper variant="outlined" sx={{ p: 2, mb: 2, borderRadius: '8px', boxShadow: '0 4px 6px rgba(0,0,0,0.05)' }}>
-                          <Typography variant="subtitle1" sx={{ mb: 1.5, fontWeight: 600, color: 'primary.main', display: 'flex', alignItems: 'center', gap: 1 }}>
-                            <InfoIcon fontSize="small" />
-                            Raw Result Data
-                          </Typography>
-                          <Paper 
-                            sx={{ 
-                              p: 2, 
-                              backgroundColor: 'grey.50', 
-                              overflowX: 'auto',
-                              fontFamily: 'monospace',
-                              fontSize: '0.875rem',
-                              borderRadius: '6px',
-                              border: '1px solid',
-                              borderColor: 'divider'
-                            }}
-                          >
-                            <pre style={{ margin: 0, overflow: 'auto', maxHeight: '300px' }}>
-                              {JSON.stringify(result.data, null, 2)}
-                            </pre>
-                          </Paper>
-                        </Paper>
-                      )}
-                    </>
-                  )}
-                </Box>
-                
-                {/* Add to graph button for compatible results - hide for card collections */}
-                {((result.data?.items && result.data.items.length > 0) || 
-                  (result.data?.nodes && result.data.nodes.length > 0) ||
-                  (result.data?.display?.card) ||
-                  (result.data?.display?.text)) && 
-                  // Don't show for card collections
-                  !(result.data?.display?.type === 'card_collection' && result.data?.display?.cards) && (
-                  <Box sx={{ mt: 3, display: 'flex', justifyContent: 'center' }}>
-                    <Button
-                      onClick={handleAddToGraph}
-                      variant="contained"
-                      startIcon={<AddIcon />}
-                      color="success"
-                      sx={{
-                        borderRadius: '28px',
-                        px: 3,
-                        py: 1,
-                        fontWeight: 600,
-                        textTransform: 'none',
-                        boxShadow: '0 4px 8px rgba(76, 175, 80, 0.25)',
-                        '&:hover': {
-                          boxShadow: '0 6px 12px rgba(76, 175, 80, 0.35)',
-                        }
-                      }}
+                              {renderParameterInput(param, errors, touched)}
+                            </Box>
+                          ))}
+                        </Stack>
+                      </Box>
+                    )}
+                    
+                    <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 2 }}>
+                      <Button
+                      type="submit"
+                        variant="contained"
+                      disabled={isExecuting}
+                        startIcon={isExecuting ? <CircularProgress size={20} /> : <SearchIcon />}
                     >
-                      Add to Graph
-                    </Button>
-                  </Box>
-                )}
-              </Box>
-            )}
-          </Box>
-        )}
-      </CardContent>
-    </Card>
+                      {isExecuting ? 'Executing...' : 'Execute Module'}
+                      </Button>
+                    </Box>
+                </Form>
+              )}
+            </Formik>
+            </Box>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Results Section - separate card below */}
+      {result && !showParameters && (
+        (result.data && Array.isArray(result.data.nodes) && typeof result.data.display === 'string') ? (
+          <ResultsSection result={result.data as ModuleResult} investigationId={investigationId} onAddToGraph={onAddToGraph} />
+        ) : null
+      )}
+    </>
   );
 };
 

@@ -14,6 +14,7 @@ import requests
 
 # Import BaseModule using absolute import
 from backend.modules.base import BaseModule
+from backend.modules.utils import ModuleResultBuilder
 from backend.utils.helpers import sanitize_string, filter_none_values
 
 # Configure logger
@@ -137,41 +138,13 @@ class UsernamesModule(BaseModule):
         """
         # Basic platforms to start with
         platforms = {
-                    "instagram": {
+                    "Instagram": {
                         "url": "https://www.instagram.com/{}",
                         "urlMain": "https://www.instagram.com",
                         "errorMsg": ["Sorry, this page isn't available."],
                         "errorType": "html",
                         "regexCheck": "^[A-Za-z0-9._](?!.*[..])(?!.*[_.]{2})[A-Za-z0-9._]{0,28}[A-Za-z0-9]$"
                     },
-                    "twitter": {
-                        "url": "https://twitter.com/{}",
-                        "urlMain": "https://twitter.com",
-                        "errorMsg": ["This account doesn't exist", "User not found"],
-                        "errorType": "html",
-                        "regexCheck": "^[A-Za-z0-9_]{1,15}$"
-                    },
-                    "tiktok": {
-                        "url": "https://www.tiktok.com/@{}",
-                        "urlMain": "https://www.tiktok.com",
-                        "errorMsg": ["Couldn't find this account"],
-                        "errorType": "html",
-                        "regexCheck": "^[A-Za-z0-9_.]{2,24}$"
-                    },
-                    "threads": {
-                        "url": "https://www.threads.net/@{}",
-                        "urlMain": "https://www.threads.net",
-                        "errorMsg": ["Page not found"],
-                        "errorType": "html",
-                        "regexCheck": "^[A-Za-z0-9._](?!.*[..])(?!.*[_.]{2})[A-Za-z0-9._]{0,28}[A-Za-z0-9]$"
-                    },
-                    "snapchat": {
-                        "url": "https://www.snapchat.com/add/{}",
-                        "urlMain": "https://www.snapchat.com",
-                        "errorMsg": ["Page not found"],
-                        "errorType": "html",
-                        "regexCheck": "^[A-Za-z0-9_.]{3,15}$"
-                    }
                 }
                 
         return platforms
@@ -494,93 +467,51 @@ class UsernamesModule(BaseModule):
         Returns:
             Dict[str, Any]: Module execution results.
         """
-        # Extract parameters
         username = params.get("username", "")
-        # Get timeout from params first, then from config, with config value taking precedence over hardcoded default
         config_timeout = self.config.get("timeout", DEFAULT_TIMEOUT)
         timeout = params.get("timeout", config_timeout)
-        investigation_id = params.get("investigation_id")
-        
         if not username:
             raise ValueError("Username is required")
-        
-        # Clean the username
         username = username.strip()
-        
-        # Get the platforms configuration
-        results = []
         platforms = self.config.get("platforms", {})
-        found_accounts = []
-        
-        # Check each platform
-        for platform_name, platform_config in platforms.items():
+        cards = []
+        for platform_name, _ in platforms.items():
             try:
                 logger.info(f"Checking {platform_name} for username '{username}'")
-                
                 exists, account_data = self._check_username_exists(
                     username=username,
                     platform=platform_name,
                     timeout=timeout
                 )
-                
-                # Prepare result data
-                result_item = {
-                    "platform": platform_name,
-                    "platform_display": platform_name.capitalize(),
-                    "exists": exists,
-                    "url": account_data.get("url", ""),
-                    "data": account_data
-                }
-                
-                results.append(result_item)
-                
-                # Add to found accounts if it exists
                 if exists:
-                    logger.info(f"Found username '{username}' on {platform_name}")
-                    found_accounts.append(result_item)
-                
+                    node_data = {
+                        "platform": platform_name,
+                        "username": username,
+                        "url": account_data.get("url", ""),
+                        "found_at": datetime.utcnow().isoformat()
+                    }
+                    action = ModuleResultBuilder.create_add_to_investigation_action(
+                        node_type="SOCIAL_PROFILE",
+                        node_data=node_data
+                    )
+                    card = ModuleResultBuilder.build_card(
+                        title=platform_name,
+                        data=node_data,
+                        subtitle=username,
+                        url=account_data.get("url", ""),
+                        action=action,
+                        show_properties=False,
+                        icon=platform_name
+                    )
+                    cards.append(card)
             except Exception as e:
                 logger.error(f"Error searching {platform_name} for username '{username}': {str(e)}")
-                results.append({
-                    "platform": platform_name,
-                    "platform_display": platform_name.capitalize(),
-                    "exists": False,
-                    "error": str(e),
-                    "url": platform_config.get("url", "").format(username)
-                })
-        
-        # Return the results with display metadata
-        return {
-            "username": username,
-            "results": results,
-            "display": {
-                "type": "card_collection",
-                "title": f"Username Search Results for '{username}'",
-                "subtitle": f"Found {len(found_accounts)} accounts across {len(platforms)} platforms",
-                "cards": [
-                    {
-                        "type": "social_profile",
-                        "title": item["platform_display"],
-                        "subtitle": username,
-                        "url": item["url"],
-                        "platform": item["platform"],
-                        "actions": [
-                            {
-                                "type": "add_to_investigation",
-                                "label": "Add to Investigation",
-                                "node_type": "social_account",
-                                "node_data": {
-                                    "platform": item["platform"],
-                                    "username": username,
-                                    "url": item["url"],
-                                    "found_at": datetime.now().isoformat()
-                                }
-                            }
-                        ]
-                    } for item in found_accounts
-                ]
-            }
-        }
+        display_type = "single_card" if len(cards) == 1 else "card_collection"
+        return ModuleResultBuilder.build_result(
+            cards,
+            display=display_type,
+            subtitle=f"Found {len(cards)} accounts for '{username}' across {len(platforms)} platforms"
+        )
 
     def _get_platforms(self) -> List[Dict[str, Any]]:
         """
