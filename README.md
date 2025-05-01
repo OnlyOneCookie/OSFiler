@@ -1,136 +1,90 @@
 # OSFiler - OSINT Profiling Tool
 
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![Python Version](https://img.shields.io/badge/python-3.12+-blue.svg)](https://www.python.org/downloads/)
+[![React Version](https://img.shields.io/badge/react-18.0+-61DAFB.svg)](https://reactjs.org/)
+[![PostgreSQL Version](https://img.shields.io/badge/postgresql-13+-336791.svg)](https://www.postgresql.org/)
+[![FastAPI Version](https://img.shields.io/badge/fastapi-0.100+-009688.svg)](https://fastapi.tiangolo.com/)
+[![Contributor Covenant](https://img.shields.io/badge/Contributor%20Covenant-v2.1%20adopted-ff69b4.svg)](CODE_OF_CONDUCT.md)
+
 OSFiler is an educational Open Source Intelligence (OSINT) profiling tool that helps researchers create comprehensive profiles of subjects (people, organizations, etc.) by collecting and linking various data points through a graph-based approach.
 
-> 📋 Check out the [feature roadmap](#feature-roadmap) to see what's currently available and what's coming soon!
+## 🔍 What is OSINT?
 
-## Features
+Open Source Intelligence (OSINT) is the practice of collecting and analyzing information from publicly available sources. It's a crucial skill in various fields including:
 
-- **Portfolio/Main Node Creation**: Create central nodes representing subjects of investigation
-- **Node System**: Add different types of nodes (usernames, emails, phone numbers, addresses, etc.)
-- **Graph Visualization**: Visual representation of nodes and relationships using vis.js
-- **Modular Design**: Easily extend functionality with new modules
-- **Data Persistence**: Save investigations in PostgreSQL database
-- **Authentication**: Secure access to your investigations
+- Cybersecurity research and threat intelligence
+- Digital forensics and investigations
+- Business intelligence and competitive analysis
+- Academic research and journalism
+- Law enforcement and security operations
 
-## Technology Stack
+OSFiler is designed to help researchers and investigators organize and visualize OSINT data in a structured, graph-based format, making it easier to identify patterns and connections between different pieces of information.
 
-- **Frontend**: React (TypeScript)
-- **Backend**: Python
-- **Database**: PostgreSQL
-- **Visualization**: vis.js
+## ✨ Key Features
 
-## Project Status
+* **📊 Graph-Based Visualization**: Create and visualize connections between different data points using an intuitive graph interface
+* **🔍 Comprehensive Node System**: Support for various node types including persons, organizations, usernames, emails, phone numbers, and more
+* **🔄 Modular Design**: Extend functionality with custom modules for different OSINT capabilities
+* **💾 Data Persistence**: Save and manage investigations in a PostgreSQL database
+* **🔒 Secure Access**: Authentication system to protect your investigations
+* **📱 Modern Interface**: Clean, responsive UI built with React and TypeScript
 
-⚠️ **Development in Progress** ⚠️
+## ⚙️ Architecture
 
-This project is currently under heavily active development. Features may be incomplete or subject to change.
+OSFiler consists of multiple components working together:
 
-## Prerequisites
+| Component | Description | Technology |
+|-----------|-------------|------------|
+| Frontend  | Web-based user interface | React, TypeScript |
+| Backend   | API and business logic | Python, FastAPI |
+| Database  | Data storage | PostgreSQL |
+| Modules   | Extensible OSINT capabilities | Python |
 
+For detailed architecture information, see the [Architecture Documentation](docs/architecture.md).
+
+## 🛠️ Installation
+
+OSFiler can be set up in various environments. For detailed installation instructions, see the [Setup Guide](docs/setup.md).
+
+**Prerequisites:**
 - Node.js (v16+)
 - Python (v3.12+)
 - PostgreSQL (v13+)
 
-## Installation
+## 📚 Documentation
 
-### Local Development Setup
+* [Setup Guide](docs/setup.md) - Installation and configuration
+* [Module Development Guide](docs/modules.md) - Creating custom OSINT modules
+* [API Documentation](docs/api.md) - API endpoints and usage
+* [Architecture Documentation](docs/architecture.md) - System design and components
 
-1. **Clone the repository**
+## ⚠️ Security & Usage Guidelines
 
-```bash
-git clone https://github.com/OnlyOneCookie/osfiler.git
-cd osfiler
-```
+### Legal Disclaimer
 
-2. **Set up the backend**
+OSFiler is designed strictly for educational purposes. The creators and maintainers of OSFiler will not be held liable for any unlawful activities conducted using this tool. Users must take full responsibility for their actions and ensure compliance with all applicable laws and regulations.
 
-```bash
-python -m venv .venv
-source .venv/bin/activate  # On Windows, use: .venv\Scripts\activate
-pip install -r requirements.txt
-python app.py
-```
+### Prohibited Usage
 
-3. **Set up the frontend**
+OSFiler must not be used for:
+- Military, offensive, or adversarial operations
+- Cyber warfare, espionage, or intelligence gathering
+- Unauthorized data collection or privacy violations
+- Harassment, stalking, or intimidation
+- Any activities that violate local or international laws
 
-```bash
-cd frontend
-npm install
-npm start
-```
+### Usage Guidelines
 
-4. **Set up PostgreSQL**
+By using OSFiler, you agree to:
+- Use the tool responsibly and ethically for educational purposes only
+- Respect privacy and obtain necessary authorization before data collection
+- Comply with all platform terms of service and legal requirements
+- Not engage in any form of unauthorized access or data exfiltration
 
-- Install PostgreSQL from https://www.postgresql.org/download/
-- Create a new database
-- Update the database configuration in backend/core/config.py
+Violation of these guidelines may result in legal actions, access revocation, and reporting to authorities. You acknowledge full responsibility for your actions while using this tool.
 
-## Usage
-
-1. **Login**
-   - Default development credentials: admin/admin
-
-2. **Create Investigation**
-   - Create a new investigation with a title and description
-   - Add a main node representing your investigation subject
-
-3. **Add Nodes**
-   - Add various node types (email, username, phone, etc.)
-   - Connect nodes to create relationships
-
-4. **Use Modules**
-   - Run the Username Search module to find accounts across platforms
-   - Add discovered accounts to your investigation
-
-5. **Visualize**
-   - Use the graph view to visualize connections
-   - Manipulate the graph to organize your data
-
-## Module Development
-
-OSFiler is designed with a modular architecture that allows for easy extension. To create your own module:
-
-1. Create a new Python file in the `backend/modules/addons` directory with a descriptive name (e.g., `email_analyzer.py`)
-2. Implement the module interface by extending the `BaseModule` class
-3. The module will be automatically discovered and loaded by the ModuleRunner
-
-For example:
-```python
-# backend/modules/addons/example_module.py
-from backend.modules.base import BaseModule
-
-class ExampleModule(BaseModule):
-    def __init__(self):
-        super().__init__()
-        self.name = "example_module"
-        self.description = "Example module for OSFiler"
-        # ... other configuration ...
-    
-    def execute(self, params):
-        # Implementation goes here
-        return {"status": "success"}
-```
-
-Detailed module development documentation can be found in the [Module Development Guide](docs/modules.md).
-
-## Disclaimer
-
-OSFiler is designed strictly for educational purposes. By using this tool, you agree to take full responsibility for your actions. The creator of OSFiler will not be held liable for any unlawful activities, including but not limited to stalking, harassment, violating privacy, or engaging in any illegal actions that may result in legal consequences.
-
-## Prohibited Usage
-
-OSFiler must not be used for any military, offensive, or adversarial activities, including but not limited to cyber warfare, espionage, or any form of military operations. Any use of OSFiler for such purposes is strictly prohibited. Users engaging in such activities will be held fully responsible for their actions, and the tool's creator will not be liable for any legal or ethical violations resulting from such misuse.
-
-Please ensure that you:
-- Use this tool responsibly, ethically, and for educational purposes only
-- Comply with all applicable laws and regulations in your jurisdiction
-- Respect the privacy of others and obtain necessary authorization before using the tool
-- Do not engage in or facilitate any illegal, military, or offensive activities
-
-The creator of OSFiler does not condone its misuse in any unlawful or unethical manner, and any violation of these guidelines may result in legal actions.
-
-## Contributing
+## 🤝 Contributing
 
 Contributions are welcome! Please feel free to submit a Pull Request.
 
@@ -140,50 +94,11 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 4. Push to the branch (`git push origin feature/amazing-feature`)
 5. Open a Pull Request
 
-## License
+## 📄 License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-## Feature Roadmap
-
-### Core Features
-- [x] **User Authentication**: Secure access to investigations
-- [x] **Database Storage**: PostgreSQL-based persistence
-- [ ] **Data Import/Export**: Share or backup investigations
-- [ ] **API Endpoints**: Comprehensive REST API
-- [ ] **Docker Support**: Containerized deployment
-- [ ] **Multi-user Collaboration**: Team-based investigations
-
-### Investigation Features
-- [x] **Graph-based Investigations**: Create and visualize connections
-- [x] **Basic Node Types**: Persons, organizations, usernames, emails, etc.
-- [x] **Node Management**: Add, edit, and delete nodes
-- [x] **Relationship Management**: Create connections between nodes
-- [ ] **Advanced Visualization**: Additional ways to view and interact with data
-- [ ] **Reporting Tools**: Generate comprehensive reports from collected data
-- [ ] **Timeline View**: Chronological display of events and discoveries
-- [ ] **Investigation Templates**: Reusable investigation structures
-
-### Modules
-- [x] **Module Framework**: Extensible architecture for OSINT capabilities
-- [x] **Username Search**: Find accounts across platforms based on username (still needs some improvement)
-- [ ] **Email Analysis**: Gather information based on email addresses
-- [ ] **Domain Lookup**: Collect data about websites and domains
-- [ ] **Phone Number Analysis**: Identify information linked to phone numbers
-- [ ] **Social Media Scraping**: Extract data from public social profiles
-- [ ] **Image Analysis**: EXIF data extraction and reverse image search
-- [ ] **Geolocation Tools**: Map-based data visualization
-
-### Module Management System
-- [x] **Module Reloading**: Reload modules without application restart
-- [x] **Module Configuration**: Configure individual modules via settings
-- [ ] **Addon Store**: Marketplace for community modules (verified only)
-- [ ] **Module Installation**: Install new modules from the store or local files
-- [ ] **Update Manager**: Update modules directly from the admin interface
-- [ ] **Version Control**: Track module versions and compatibility
-- [ ] **Dependency Management**: Handle module dependencies automatically
-
-## Acknowledgements & Inspiration
+## 🙏 Acknowledgements
 
 - **OSINT Framework**: For providing a structured approach to OSINT research
 - **Sherlock Project**: For inspiration on effective username search across platforms

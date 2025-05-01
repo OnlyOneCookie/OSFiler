@@ -12,16 +12,15 @@
             "errorType": "message",
             "regexCheck": "^[A-Za-z0-9._](?!.*[..])(?!.*[_.]{2})[A-Za-z0-9._]{0,28}[A-Za-z0-9]$"
         },
-        "X": {
-            "url": "https://x.com/{}",
-            "urlMain": "https://x.com",
+        "Twitter": {
+            "url": "https://twitter.com/{}",
+            "urlMain": "https://twitter.com",
             "errorMsg": [
                 "This account doesn't exist",
                 "User not found"
             ],
             "errorType": "message",
-            "regexCheck": "^[A-Za-z0-9_]{1,15}$",
-            "urlProbe": "https://nitter.privacydev.net/{}"
+            "regexCheck": "^[A-Za-z0-9_]{1,15}$"
         },
         "TikTok": {
             "url": "https://www.tiktok.com/@{}",
@@ -36,7 +35,8 @@
             "url": "https://www.threads.net/@{}",
             "urlMain": "https://www.threads.net",
             "errorMsg": [
-                "Page not found"
+                "Sorry, that page isn't available",
+                "The link you followed may be broken, or the page may have been removed."
             ],
             "errorType": "message",
             "regexCheck": "^[A-Za-z0-9._](?!.*[..])(?!.*[_.]{2})[A-Za-z0-9._]{0,28}[A-Za-z0-9]$"
@@ -50,6 +50,17 @@
             "errorType": "message",
             "regexCheck": "^[A-Za-z0-9_.]{3,15}$",
             "request_method": "GET"
+        },
+        "X": {
+            "url": "https://x.com/{}",
+            "urlMain": "https://x.com",
+            "errorMsg": [
+                "This account doesn't exist",
+                "User not found"
+            ],
+            "errorType": "message",
+            "regexCheck": "^[A-Za-z0-9_]{1,15}$",
+            "urlProbe": "https://nitter.privacydev.net/{}"
         },
         "GitHub": {
             "url": "https://www.github.com/{}",
@@ -178,7 +189,7 @@
             "urlMain": "https://www.behance.net/",
             "errorType": "status_code"
         },
-        "Steam Community (User)": {
+        "Steam (User)": {
             "url": "https://steamcommunity.com/id/{}/",
             "urlMain": "https://steamcommunity.com/",
             "errorMsg": [
