@@ -928,8 +928,25 @@ class APIService {
    * @returns The result of the module execution.
    */
   public async executeModule(moduleName: string, params: Record<string, any>): Promise<ModuleExecuteResult> {
-    const response = await this.axios.post<ModuleExecuteResult>(`/modules/${moduleName}/execute`, params);
-    return response.data;
+    // Check if any value in params is a File
+    const hasFile = Object.values(params).some(v => v instanceof File);
+    if (hasFile) {
+      const formData = new FormData();
+      Object.entries(params).forEach(([key, value]) => {
+        if (value !== undefined && value !== null) {
+          formData.append(key, value);
+        }
+      });
+      const response = await this.axios.post<ModuleExecuteResult>(`/modules/${moduleName}/execute`, formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+      return response.data;
+    } else {
+      const response = await this.axios.post<ModuleExecuteResult>(`/modules/${moduleName}/execute`, params);
+      return response.data;
+    }
   }
 
   /**

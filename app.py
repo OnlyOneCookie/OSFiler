@@ -5,6 +5,7 @@ OSFiler application.
 import logging
 import time
 from typing import Dict, Any
+from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Request, Depends, HTTPException, status
 from fastapi.responses import JSONResponse
@@ -29,56 +30,12 @@ logging.basicConfig(
 )
 logger = logging.getLogger("osfiler")
 
-# Create FastAPI application
-app = FastAPI(
-    title=settings["api"]["title"],
-    description=settings["api"]["description"],
-    version=settings["app_version"],
-    docs_url="/api/docs",
-    redoc_url="/api/redoc",
-    openapi_url="/api/openapi.json"
-)
-
-# Configure CORS
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=settings["security"]["cors_origins"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-
-# Add request timing middleware
-@app.middleware("http")
-async def add_process_time_header(request: Request, call_next):
+@asynccontextmanager
+async def lifespan(app: FastAPI):
     """
-    Add process time header to responses.
-    
-    Args:
-        request (Request): The incoming request.
-        call_next: The next middleware/route handler.
-    
-    Returns:
-        Response: The response with process time header.
+    Lifespan context manager for startup and shutdown events.
     """
-    start_time = time.time()
-    response = await call_next(request)
-    process_time = time.time() - start_time
-    response.headers["X-Process-Time"] = str(process_time)
-    return response
-
-# Define startup event
-@app.on_event("startup")
-async def startup_event():
-    """
-    Startup event handler.
-    
-    This function is called when the application starts. It initializes
-    the database connection, checks for admin users, and loads modules.
-    
-    Raises:
-        Exception: If critical startup operations fail
-    """
+    # Startup
     logger.info("Starting up OSFiler application")
     
     # Initialize database schema
@@ -131,22 +88,52 @@ async def startup_event():
         # Non-critical error, don't halt startup
     
     logger.info("OSFiler application started successfully")
-
-# Define shutdown event
-@app.on_event("shutdown")
-async def shutdown_event():
-    """
-    Shutdown event handler.
     
-    This function is called when the application shuts down. It performs cleanup.
-    """
+    yield  # This is where the application runs
+    
+    # Shutdown
     logger.info("Shutting down OSFiler application")
-    
-    # The engine and session factory will be cleaned up automatically
-    # when Python exits, but we can dispose of the engine explicitly
     engine.dispose()
-    
     logger.info("OSFiler application shutdown complete")
+
+# Create FastAPI application
+app = FastAPI(
+    title=settings["api"]["title"],
+    description=settings["api"]["description"],
+    version=settings["app_version"],
+    docs_url="/api/docs",
+    redoc_url="/api/redoc",
+    openapi_url="/api/openapi.json",
+    lifespan=lifespan
+)
+
+# Configure CORS
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=settings["security"]["cors_origins"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# Add request timing middleware
+@app.middleware("http")
+async def add_process_time_header(request: Request, call_next):
+    """
+    Add process time header to responses.
+    
+    Args:
+        request (Request): The incoming request.
+        call_next: The next middleware/route handler.
+    
+    Returns:
+        Response: The response with process time header.
+    """
+    start_time = time.time()
+    response = await call_next(request)
+    process_time = time.time() - start_time
+    response.headers["X-Process-Time"] = str(process_time)
+    return response
 
 # Include API router
 app.include_router(api_router)
