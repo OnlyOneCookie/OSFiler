@@ -11,6 +11,7 @@ This guide explains how to develop modules for the OSFiler platform. Modules are
 - [Module Reloading](#module-reloading)
 - [Handling Parameters](#handling-parameters)
 - [Creating Nodes and Relationships](#creating-nodes-and-relationships)
+- [Presenting Results with Standardized Cards (utils.py)](#presenting-results-with-standardized-cards-utils.py)
 - [Working with Types](#working-with-types)
 - [Module Configuration](#module-configuration)
 - [Example Module](#example-module)
@@ -273,6 +274,100 @@ results = {
 ### Data Visualization
 
 *Note: A comprehensive guide on how to display the nodes/data to the frontend will be provided in a later phase. The system currently supports multiple visualization methods, but this feature is still in development to determine the most effective and developer-friendly approaches.*
+
+## Presenting Results with Standardized Cards (utils.py)
+
+To ensure a consistent and user-friendly display of module results in the OSFiler frontend, all modules should use the standardized card/result builders provided in `backend/modules/utils.py`.
+
+### Why Use the Card Builder?
+- Guarantees a uniform look and feel for all module results
+- Ensures compatibility with the frontend's dynamic card rendering
+- Makes it easy to add actions like "Add to Investigation" to any result
+
+### Key Utilities in `utils.py`
+
+#### 1. `ModuleResultBuilder.build_card`
+Creates a standardized card for a single result entity.
+
+**Example:**
+```python
+from backend.modules.utils import ModuleResultBuilder
+
+card = ModuleResultBuilder.build_card(
+    title="Instagram",
+    data={
+        "platform": "instagram",
+        "username": username,
+        "url": profile_url,
+        # ... any other properties ...
+        # This will only be showed to the card body (below)
+    },
+    subtitle=username,
+    url=profile_url,
+    body="Found Instagram profile.",
+    action=ModuleResultBuilder.create_add_to_investigation_action(
+        node_type="SOCIAL_PROFILE",
+        node_data={
+            "platform": "instagram",
+            "username": username,
+            "url": profile_url
+        }
+    ),
+    show_properties=False  # (Default: True) Set to False to hide property details in the card
+)
+```
+
+#### 2. `ModuleResultBuilder.build_result`
+Wraps a list of cards into a result object for the frontend.
+
+**Example:**
+```python
+result = ModuleResultBuilder.build_result(
+    cards=[card1, card2, ...],
+    display="card_collection",  # or "single_card"
+    title="Found Accounts",
+    subtitle=f"Found {len(cards)} accounts"
+)
+```
+
+#### 3. `ModuleResultBuilder.create_add_to_investigation_action`
+Creates a standardized action for adding a node to the investigation graph.
+
+**Example:**
+```python
+action = ModuleResultBuilder.create_add_to_investigation_action(
+    label="Add to Investigation",
+    node_type="SOCIAL_PROFILE",
+    node_data=node_data
+)
+```
+
+### Best Practices for Presenting Results
+- **Always use `build_card` and `build_result`** for anything you want to display as a card in the frontend.
+- **Use the `action` parameter** to add interactive buttons (e.g., "Add to Investigation").
+- **Set `show_properties=False`** if you want to hide the property details in the card body.
+- **Keep card data generic**—avoid hardcoding platform-specific or module-specific fields in the frontend.
+- **Return a result object** with a `nodes` key (list of cards) and a `display` type.
+
+### Example: Returning Results from a Module
+```python
+def execute(self, params: Dict[str, Any]) -> Dict[str, Any]:
+    # ... module logic ...
+    cards = []
+    for ... in ...:
+        card = ModuleResultBuilder.build_card(
+            title=..., data=..., ...
+        )
+        cards.append(card)
+    return ModuleResultBuilder.build_result(
+        cards,
+        display="card_collection",
+        title="Results Title",
+        subtitle="Results Subtitle"
+    )
+```
+
+**By following this pattern, your module's results will always be displayed correctly and consistently in the OSFiler UI.**
 
 ## Working with Types
 

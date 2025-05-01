@@ -10,7 +10,8 @@ import logging
 from typing import Dict, Any, List, Optional
 from datetime import datetime
 
-from fastapi import APIRouter, Depends, HTTPException, status, Body
+from fastapi import APIRouter, Depends, HTTPException, status, Body, Request, UploadFile, File, Form
+from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 
 from backend.core.security import get_current_user
@@ -122,21 +123,25 @@ async def get_module(
 @router.post("/{module_name}/execute", response_model=ModuleExecuteResult)
 async def execute_module(
     module_name: str,
-    params: Dict[str, Any] = Body(...),
+    request: Request,
     current_user: Dict[str, Any] = Depends(get_current_user)
 ) -> Dict[str, Any]:
     """
     Execute a module with parameters.
-    
-    Args:
-        module_name (str): The name of the module to execute.
-        params (Dict[str, Any]): Parameters for module execution.
-        current_user (Dict[str, Any]): The current authenticated user.
-    
-    Returns:
-        Dict[str, Any]: The result of the module execution.
     """
     try:
+        # Detect content type
+        content_type = request.headers.get("content-type", "")
+        if content_type.startswith("multipart/form-data"):
+            form = await request.form()
+            params = dict(form)
+            # Convert UploadFile fields
+            for k, v in form.items():
+                if isinstance(v, UploadFile):
+                    params[k] = v
+        else:
+            params = await request.json()
+        
         module_runner = get_module_runner()
         module = module_runner.get_module(module_name)
         
