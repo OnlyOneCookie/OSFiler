@@ -34,7 +34,8 @@ import {
   Tooltip,
   Checkbox,
   FormControlLabel,
-  Avatar
+  Avatar,
+  CardMedia
 } from '@mui/material';
 
 // Material UI icons
@@ -138,6 +139,7 @@ interface ResultCard {
   action?: any;
   show_properties?: boolean;
   icon?: string;
+  image?: string;
 }
 
 interface ModuleResult {
@@ -249,9 +251,28 @@ const ModuleRunner: React.FC<ModuleRunnerProps> = ({ investigationId, onAddToGra
   // Generate a validation schema based on module parameters
   const generateValidationSchema = (module: Module) => {
     const schemaFields: Record<string, any> = {};
-    
-    // Add validation for required parameters
+    const hasImageFile = module.required_params.some(p => p.name === 'image_file');
+    const hasImageUrl = module.required_params.some(p => p.name === 'image_url');
+    if (hasImageFile && hasImageUrl) {
+      schemaFields['image_file'] = Yup.mixed().test(
+        'file-or-url',
+        'Either image file or image URL must be provided',
+        function (value) {
+          const { image_url } = this.parent;
+          return (value && value instanceof File && value.size > 0) || !!image_url;
+        }
+      );
+      schemaFields['image_url'] = Yup.string().test(
+        'url-or-file',
+        'Either image file or image URL must be provided',
+        function (value) {
+          const { image_file } = this.parent;
+          return !!value || (image_file && image_file instanceof File && image_file.size > 0);
+        }
+      );
+    }
     (module.required_params || []).forEach(param => {
+      if (param.name === 'image_file' || param.name === 'image_url') return;
       switch (param.type) {
         case 'string':
           schemaFields[param.name] = Yup.string().required(`${param.name} is required`);
@@ -273,9 +294,8 @@ const ModuleRunner: React.FC<ModuleRunnerProps> = ({ investigationId, onAddToGra
           schemaFields[param.name] = Yup.mixed().required(`${param.name} is required`);
       }
     });
-    
-    // Add validation for optional parameters (not required)
     (module.optional_params || []).forEach(param => {
+      if (param.name === 'image_file' || param.name === 'image_url') return;
       switch (param.type) {
         case 'string':
           schemaFields[param.name] = Yup.string();
@@ -297,45 +317,45 @@ const ModuleRunner: React.FC<ModuleRunnerProps> = ({ investigationId, onAddToGra
           schemaFields[param.name] = Yup.mixed();
       }
     });
-    
     return Yup.object().shape(schemaFields);
   };
 
   // Generate initial values for the form
   const generateInitialValues = (module: Module) => {
     const initialValues: Record<string, any> = {};
-    
-    // Set default values for required parameters
     (module.required_params || []).forEach(param => {
-      switch (param.type) {
-        case 'string':
-          initialValues[param.name] = '';
-          break;
-        case 'integer':
-        case 'number':
-          initialValues[param.name] = param.default !== undefined ? param.default : 0;
-          break;
-        case 'boolean':
-          initialValues[param.name] = param.default !== undefined ? param.default : false;
-          break;
-        case 'array':
-          initialValues[param.name] = param.default !== undefined ? param.default : [];
-          break;
-        case 'object':
-          initialValues[param.name] = param.default !== undefined ? param.default : {};
-          break;
-        default:
-          initialValues[param.name] = param.default !== undefined ? param.default : '';
+      if (param.name === 'image_file') {
+        initialValues[param.name] = undefined;
+      } else if (param.name === 'image_url') {
+        initialValues[param.name] = '';
+      } else {
+        switch (param.type) {
+          case 'string':
+            initialValues[param.name] = '';
+            break;
+          case 'integer':
+          case 'number':
+            initialValues[param.name] = param.default !== undefined ? param.default : 0;
+            break;
+          case 'boolean':
+            initialValues[param.name] = param.default !== undefined ? param.default : false;
+            break;
+          case 'array':
+            initialValues[param.name] = param.default !== undefined ? param.default : [];
+            break;
+          case 'object':
+            initialValues[param.name] = param.default !== undefined ? param.default : {};
+            break;
+          default:
+            initialValues[param.name] = param.default !== undefined ? param.default : '';
+        }
       }
     });
-    
-    // Set default values for optional parameters
     (module.optional_params || []).forEach(param => {
-      // Check if the module has a config_schema with defaults for this parameter
+      if (param.name === 'image_file' || param.name === 'image_url') return;
       const configDefault = module.config_schema && 
                           module.config_schema[param.name] && 
                           module.config_schema[param.name].default;
-      
       switch (param.type) {
         case 'string':
           initialValues[param.name] = param.default !== undefined ? param.default : 
@@ -363,10 +383,7 @@ const ModuleRunner: React.FC<ModuleRunnerProps> = ({ investigationId, onAddToGra
                                      (configDefault !== undefined ? configDefault : '');
       }
     });
-    
-    // Log the initial values for debugging
     console.log('Generated initial values for module:', initialValues);
-    
     return initialValues;
   };
 
@@ -556,6 +573,7 @@ const ModuleRunner: React.FC<ModuleRunnerProps> = ({ investigationId, onAddToGra
         </Card>
       );
     }
+    const isSingleCard = result.display === 'single_card' && result.nodes.length === 1;
     return (
       <Card variant="outlined" sx={{ mt: 3, borderRadius: 2 }}>
         <CardHeader title={result.title || 'Results'} />
@@ -580,6 +598,7 @@ const ModuleRunner: React.FC<ModuleRunnerProps> = ({ investigationId, onAddToGra
                     recheckNode={recheckNode}
                     onAddToGraph={onAddToGraph}
                     investigationId={investigationId}
+                    fullWidth={isSingleCard}
                   />
                 )}
               </NodeExistence>
@@ -590,7 +609,7 @@ const ModuleRunner: React.FC<ModuleRunnerProps> = ({ investigationId, onAddToGra
     );
   };
 
-  const ResultCardComponent = ({ card, isChecking, recheckNode, onAddToGraph, investigationId }: { card: ResultCard, isChecking?: boolean, recheckNode?: () => void, onAddToGraph?: (nodes: any[]) => void, investigationId: string }) => {
+  const ResultCardComponent = ({ card, isChecking, recheckNode, onAddToGraph, investigationId, fullWidth }: { card: ResultCard, isChecking?: boolean, recheckNode?: () => void, onAddToGraph?: (nodes: any[]) => void, investigationId: string, fullWidth?: boolean }) => {
     const { notify } = useNotification();
     const shownFields = ["title", "subtitle", "url", "body", "action"];
     const detailFields = Object.entries(card.data || {})
@@ -601,7 +620,8 @@ const ModuleRunner: React.FC<ModuleRunnerProps> = ({ investigationId, onAddToGra
       <Card
         variant="outlined"
         sx={{
-          width: { xs: '100%', sm: 'calc(50% - 16px)', md: 'calc(33.33% - 16px)' },
+          width: fullWidth ? '100%' : { xs: '100%', sm: 'calc(50% - 16px)', md: 'calc(33.33% - 16px)' },
+          maxWidth: fullWidth ? 'none' : 420,
           borderRadius: '12px',
           overflow: 'hidden',
           border: '1.5px solid',
@@ -616,8 +636,16 @@ const ModuleRunner: React.FC<ModuleRunnerProps> = ({ investigationId, onAddToGra
           },
         }}
       >
+        {card.image && (
+          <CardMedia
+            component="img"
+            image={card.image}
+            alt={card.title}
+            sx={{ width: '100%', maxHeight: 220, objectFit: 'contain', background: '#f5f5f5' }}
+          />
+        )}
         <CardHeader
-          avatar={card.icon ? getDynamicIcon(card.icon, { style: { width: 44, height: 44 } }) : <EntityAvatar entity={card.data} size={44} />}
+          avatar={(!card.image && card.icon) ? getDynamicIcon(card.icon, { style: { width: 44, height: 44 } }) : (!card.image ? <EntityAvatar entity={card.data} size={44} /> : undefined)}
           title={<Typography variant="h6" fontWeight={700}>{card.title}</Typography>}
           subheader={card.subtitle && <Typography variant="subtitle2" color="text.secondary">{card.subtitle}</Typography>}
           action={card.url ? (
@@ -700,10 +728,40 @@ const ModuleRunner: React.FC<ModuleRunnerProps> = ({ investigationId, onAddToGra
   };
 
   // Move renderParameterInput above its first usage
-  const renderParameterInput = (param: any, errors: any, touched: any) => {
+  const renderParameterInput = (param: any, errors: any, touched: any, setFieldValue: any, values: any) => {
     const fieldId = `param-${param.name}`;
     const hasError = errors[param.name] && touched[param.name];
     switch (param.type) {
+      case 'file':
+        return (
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <input
+              id={fieldId}
+              name={param.name}
+              type="file"
+              accept="image/*"
+              style={{ display: 'none' }}
+              onChange={e => {
+                setFieldValue(param.name, e.currentTarget.files && e.currentTarget.files[0]);
+              }}
+              disabled={Boolean(param.name === 'image_file' && values['image_file'])}
+            />
+            <label htmlFor={fieldId}>
+              <Button
+                variant="outlined"
+                color="primary"
+                component="span"
+                size="small"
+                disabled={Boolean(param.name === 'image_file' && values['image_file'])}
+              >
+                Choose File
+              </Button>
+            </label>
+            <Typography variant="body2" sx={{ minWidth: 0, flex: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+              {values[param.name]?.name || 'No file chosen'}
+            </Typography>
+          </Box>
+        );
       case 'boolean':
         return (
           <FormControlLabel
@@ -759,7 +817,6 @@ const ModuleRunner: React.FC<ModuleRunnerProps> = ({ investigationId, onAddToGra
           />
         );
       case 'string':
-      default:
         return (
           <Field
             as={TextField}
@@ -770,8 +827,11 @@ const ModuleRunner: React.FC<ModuleRunnerProps> = ({ investigationId, onAddToGra
             size="small"
             error={hasError}
             helperText={hasError && <ErrorMessage name={param.name} />}
+            disabled={Boolean(param.name === 'image_file' && values['image_file'])}
           />
         );
+      default:
+        return null;
     }
   };
 
@@ -913,9 +973,11 @@ const ModuleRunner: React.FC<ModuleRunnerProps> = ({ investigationId, onAddToGra
               }}
               enableReinitialize
             >
-              {({ errors, touched }) => (
+              {({ errors, touched, setFieldValue, values }) => {
+                console.log('Formik values:', values);
+                return (
                   <Form>
-                  {selectedModule.required_params && selectedModule.required_params.length > 0 ? (
+                    {selectedModule.required_params && selectedModule.required_params.length > 0 ? (
                       <Box sx={{ mb: 3 }}>
                         <Typography variant="subtitle1" sx={{ mb: 1 }}>Required Parameters</Typography>
                         <Stack spacing={2}>
@@ -933,7 +995,7 @@ const ModuleRunner: React.FC<ModuleRunnerProps> = ({ investigationId, onAddToGra
                                     </Tooltip>
                                   )}
                               </Box>
-                              {renderParameterInput(param, errors, touched)}
+                              {renderParameterInput(param, errors, touched, setFieldValue, values)}
                             </Box>
                           ))}
                         </Stack>
@@ -962,7 +1024,7 @@ const ModuleRunner: React.FC<ModuleRunnerProps> = ({ investigationId, onAddToGra
                                     </Tooltip>
                                   )}
                               </Box>
-                              {renderParameterInput(param, errors, touched)}
+                              {renderParameterInput(param, errors, touched, setFieldValue, values)}
                             </Box>
                           ))}
                         </Stack>
@@ -979,8 +1041,9 @@ const ModuleRunner: React.FC<ModuleRunnerProps> = ({ investigationId, onAddToGra
                       {isExecuting ? 'Executing...' : 'Execute Module'}
                       </Button>
                     </Box>
-                </Form>
-              )}
+                  </Form>
+                );
+              }}
             </Formik>
             </Box>
           )}

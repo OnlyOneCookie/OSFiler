@@ -20,7 +20,8 @@ class ModuleResultBuilder:
         body: Optional[str] = None,
         action: Optional[dict] = None,
         show_properties: Optional[bool] = True,
-        icon: Optional[str] = None
+        icon: Optional[str] = None,
+        image: Optional[str] = None
     ) -> dict:
         """
         Build a standardized card for module results.
@@ -33,6 +34,7 @@ class ModuleResultBuilder:
             action: Optional action dict
             show_properties: Whether to show properties
             icon: Optional icon name or path
+            image: Optional image data (base64 or URL)
         Returns:
             dict: Card dict
         """
@@ -52,6 +54,8 @@ class ModuleResultBuilder:
             card["show_properties"] = False
         if icon:
             card["icon"] = icon
+        if image:
+            card["image"] = image
         return card
 
     @staticmethod
